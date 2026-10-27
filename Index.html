@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#087443">
+<link rel="manifest" href="manifest.json">
+<title>EV Charging Station</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f1f8f4;
+  color: #183b2b;
+}
+header {
+  background: #087443;
+  color: white;
+  padding: 22px;
+  text-align: center;
+}
+main { padding: 15px; max-width: 600px; margin: auto; }
+.card {
+  background: white;
+  padding: 18px;
+  margin: 15px 0;
+  border-radius: 15px;
+  box-shadow: 0 3px 10px #0001;
+}
+input, select, button {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+input, select { border: 1px solid #ccc; }
+button {
+  background: #087443;
+  color: white;
+  border: none;
+  font-weight: bold;
+}
+li { padding: 8px; border-bottom: 1px solid #eee; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ EV Charge</h1>
+  <p>Smart EV Charging Station System</p>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Charging Station</h2>
+    <p>Green Energy Station</p>
+    <p>Location: Pune (demo)</p>
+    <p>Price: ₹15/kWh (sample price)</p>
+    <button onclick="showQueue()">View Queue</button>
+  </div>
+
+  <div class="card">
+    <h2>Book a Charging Slot</h2>
+    <input id="vehicle" placeholder="Vehicle number">
+    <select id="charger">
+      <option>Charger 1</option>
+      <option>Charger 2</option>
+      <option>Charger 3</option>
+    </select>
+    <select id="slot">
+      <option>10 AM - 11 AM</option>
+      <option>11 AM - 12 PM</option>
+      <option>12 PM - 1 PM</option>
+    </select>
+    <button onclick="bookVehicle()">Join Queue</button>
+    <p id="message"></p>
+  </div>
+
+  <div class="card">
+    <h2>Waiting Queue</h2>
+    <ol id="queue"></ol>
+    <button onclick="callNext()">Call Next Vehicle</button>
+    <p id="serving"></p>
+  </div>
+
+  <div class="card">
+    <h2>My Bookings</h2>
+    <ul id="bookings"></ul>
+  </div>
+</main>
+
+<script>
+// A node stores vehicle information and a link
+// to the next node.
+class Node {
+  constructor(vehicle, charger, slot) {
+    this.vehicle = vehicle;
+    this.charger = charger;
+    this.slot = slot;
+    this.next = null;
+  }
+}
+
+// Queue implemented using a linked list.
+class VehicleQueue {
+  constructor() {
+    this.head = null;
+    this.tail = null;
+  }
+
+  enqueue(vehicle, charger, slot) {
+    const node = new Node(vehicle, charger, slot);
+
+    if (this.tail === null) {
+      this.head = this.tail = node;
+    } else {
+      this.tail.next = node;
+      this.tail = node;
+    }
+  }
+
+  dequeue() {
+    if (this.head === null) return null;
+
+    const first = this.head;
+    this.head = this.head.next;
+
+    if (this.head === null) this.tail = null;
+
+    return first;
+  }
+
+  toArray() {
+    const result = [];
+    let current = this.head;
+
+    while (current !== null) {
+      result.push(current);
+      current = current.next;
+    }
+
+    return result;
+  }
+}
+
+const waiting = new VehicleQueue();
+const bookings = [];
+const activeVehicles = new Set();
+
+function bookVehicle() {
+  const vehicle = document.getElementById("vehicle")
+    .value.trim().toUpperCase();
+  const charger = document.getElementById("charger").value;
+  const slot = document.getElementById("slot").value;
+  const message = document.getElementById("message");
+
+  if (!vehicle) {
+    message.textContent = "Enter a vehicle number.";
+    return;
+  }
+
+  if (activeVehicles.has(vehicle)) {
+    message.textContent = "Vehicle is already in the queue.";
+    return;
+  }
+
+  waiting.enqueue(vehicle, charger, slot);
+  activeVehicles.add(vehicle);
+
+  bookings.push({ vehicle, charger, slot });
+  message.textContent = vehicle + " added successfully!";
+
+  document.getElementById("vehicle").value = "";
+  render();
+}
+
+function showQueue() {
+  render();
+  document.getElementById("queue").scrollIntoView({
+    behavior: "smooth"
+  });
+}
+
+function callNext() {
+  const next = waiting.dequeue();
+
+  if (next === null) {
+    document.getElementById("serving").textContent =
+      "No vehicles are waiting.";
+    return;
+  }
+
+  document.getElementById("serving").textContent =
+    next.vehicle + " is next at " + next.charger;
+
+  activeVehicles.delete(next.vehicle);
+  render();
+}
+
+function render() {
+  const queueList = document.getElementById("queue");
+  const bookingList = document.getElementById("bookings");
+
+  queueList.replaceChildren();
+  bookingList.replaceChildren();
+
+  waiting.toArray().forEach((node, index) => {
+    const item = document.createElement("li");
+    item.textContent =
+      (index + 1) + ". " + node.vehicle +
+      " - " + node.charger + " - " + node.slot;
+    queueList.appendChild(item);
+  });
+
+  bookings.forEach(booking => {
+    const item = document.createElement("li");
+    item.textContent =
+      booking.vehicle + " - " +
+      booking.charger + " - " + booking.slot;
+    bookingList.appendChild(item);
+  });
+}
+</script>
+</body>
+</html>
